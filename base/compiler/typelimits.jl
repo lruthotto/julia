@@ -349,7 +349,7 @@ function tmerge(@nospecialize(typea), @nospecialize(typeb))
     # if we didn't start with any unions, then always OK to form one now
     if !(typea isa Union || typeb isa Union)
         # except if we might have switched Union and Tuple below, or would do so
-        if (isconcretetype(typea) && isconcretetype(typeb)) || !(typea <: Tuple && typeb <: Tuple)
+        if (isconcretetype(typea) && isconcretetype(typeb)) || !(typea <: Tuple || typeb <: Tuple)
             return Union{typea, typeb}
         end
     end
@@ -399,7 +399,7 @@ function tmerge(@nospecialize(typea), @nospecialize(typeb))
         end
     end
     u = Union{types...}
-    if unionlen(u) <= MAX_TYPEUNION_LEN
+    if unioncomplexity(u) <= MAX_TYPEUNION_LEN
         # don't let type unions get too big, if the above didn't reduce it enough
         return u
     end
@@ -426,7 +426,7 @@ function tuplemerge(a::DataType, b::DataType)
     p = Vector{Any}(undef, lt + vt)
     for i = 1:lt
         ui = Union{ap[i], bp[i]}
-        if unionlen(ui) < MAX_TYPEUNION_LEN
+        if unioncomplexity(ui) < MAX_TYPEUNION_LEN
             p[i] = ui
         else
             p[i] = Any
