@@ -57,11 +57,7 @@ function just_construct_ssa(ci::CodeInfo, code::Vector{Any}, nargs::Int, spvals:
     oldidx = 1
     changemap = fill(0, length(code))
     while idx <= length(code)
-        stmt = code[idx]
-        if isexpr(stmt, :(=))
-            stmt = stmt.args[2]
-        end
-        if isa(stmt, Expr) && stmt.typ === Union{}
+        if ci.ssavaluetypes[idx] === Union{}
             if !(idx < length(code) && isexpr(code[idx+1], :unreachable))
                 insert!(code, idx + 1, ReturnNode())
                 insert!(ci.codelocs, idx + 1, ci.codelocs[idx])

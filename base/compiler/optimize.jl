@@ -359,7 +359,6 @@ end
 function annotate_slot_load!(e::Expr, vtypes::VarTable, sv::InferenceState, undefs::Array{Bool,1})
     head = e.head
     i0 = 1
-    e.typ = maybe_widen_conditional(e.typ)
     if is_meta_expr_head(head) || head === :const
         return
     end
@@ -517,7 +516,6 @@ end
 
 # widen all Const elements in type annotations
 function _widen_all_consts!(e::Expr, untypedload::Vector{Bool}, slottypes::Vector{Any})
-    e.typ = widenconst(e.typ)
     for i = 1:length(e.args)
         x = e.args[i]
         if isa(x, Expr)
@@ -738,8 +736,9 @@ function effect_free(@nospecialize(e), src, spvals::SimpleVector, allow_volatile
             return true
         end
         if head === :static_parameter
+            etyp = sparam_type(spvals[e.args[1]])
             # if we aren't certain enough about the type, it might be an UndefVarError at runtime
-            return isa(e.typ, Const) || issingletontype(widenconst(e.typ))
+            return isa(etyp, Const) || issingletontype(widenconst(etyp))
         end
         if e.typ === Bottom
             return false
@@ -946,12 +945,6 @@ function inline_worthy(@nospecialize(body), src::CodeInfo, spvals::SimpleVector,
     newbody = exprtype(body, src, spvals)
     !isa(newbody, Expr) && return true
     return inline_worthy(newbody, src, spvals, params, cost_threshold)
-end
-
-function mk_tuplecall(args, sv::OptimizationState)
-    e = Expr(:call, TOP_TUPLE, args...)
-    e.typ = tuple_tfunc(Tuple{Any[widenconst(exprtype(x, sv)) for x in args]...})
-    return e
 end
 
 function is_known_call(e::Expr, @nospecialize(func), src, spvals)
